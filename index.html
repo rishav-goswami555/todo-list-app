@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        body {margin: 0;font-family: sans-serif;min-height: 100vh;background: linear-gradient(-45deg, #1e1e1e, #2c3e50, #34495e, #212121);background-size: 400% 400%;animation: gradientBG 20s ease infinite;display: flex;justify-content: center;align-items: flex-start;padding: 50px;}
+        /* Keyframes for animated background */
+        ul li{list-style: none; font-size: 17px; padding: 10px 8px 12px 50px; user-select: none; position: relative; font-size: 1.6em; color: #fff;}
+        ul li::before{ position:relative; height: 28px; width: 28px; outline: solid 2px #fff; background-position: center; top: 12px; left: 8px; user-select: none;}
+        li::before{ position:relative; height: 28px; width: 28px; outline: solid 2px #fff; background-position: center; top: 12px; left: 8px; user-select: none;}
+        ul{max-height: 500px; overflow-y: auto; left: 0px;}
+        .completed strong {color: grey;}
+        .completed .subtask-item input[type="text"] {color: rgba(128, 128, 128, 0.515)}
+        .completed .priority,.completed .tag {  opacity: 0.6;}
+        .completed .subtask-item input {pointer-events: none;}
+        .completed::before{background: #fff; outline: solid 2px #424242;}        
+        ul::-webkit-scrollbar {width: 8px;}
+        ul::-webkit-scrollbar-thumb {background-color: #888; border-radius: 10px;}
+        ul::-webkit-scrollbar-thumb:hover {background: #555;}
+        #taskInput, #dueDateInput { margin-bottom: 10px;}        
+        li.task-item {user-select: none;transition: border 0.2s ease;}
+        li.task-item.drag-over {border-top: 2px solid white;}
+        li.task-item {display: flex;align-items: center;gap: 10px;transition: transform 0.2s ease, background 0.2s ease;}
+        li.task-item.dragging {opacity: 0.6;transform: scale(1.02);background-color: #333;}
+        .drag-handle {cursor: grab;font-size: 1.4em;user-select: none;width: 30px;display: inline-block; /* ✅ Now visible */padding: 0px 10px;width: auto;color: #aaa;transition: color 0.2s ease; }
+        .drag-handle:hover {color: #fff;}
+        .delete-btn {width: 32px;height: 32px;font-size: 18px;color: white;line-height: 32px;text-align: center;border-radius: 50%;cursor: pointer;background: transparent;transition: background 0.3s, transform 0.2s ease;}
+        .delete-btn:hover {background-color: #ff4444;color: white;transform: scale(1.2);box-shadow: 0 0 10px #ff4444aa;}
+        .task-item.drag-over {border-top: 2px solid white;}
+        li.task-item.dragging { cursor: move;}
+        .tag {padding: 3px 8px;border-radius: 12px;font-size: 0.8em;font-weight: bold; width: 80px; margin-top: 8px;}
+        .tag.Work { background: #007bff; color: white; }
+        .tag.Personal { background: #e83e8c; color: white; }
+        .tag.Study { background: #17a2b8; color: white; }
+        .tag.Shopping { background: #28a745; color: white; }
+        .tag.Other { background: #6c757d; color: white; }
+        .priority {padding: 3px 8px;border-radius: 12px;font-size: 0.8em;font-weight: bold; width: 80px; margin-top: 8px;}
+        .priority.High { background: #dc3545; color: white; }   /* Red */
+        .priority.Medium { background: #ffc107; color: black; } /* Yellow */
+        .priority.Low { background: #28a745; color: white; }    /* Green */
+        strong[contenteditable="true"] {outline: 1px dashed #ffcc00;background-color: rgba(255, 255, 255, 0.1);}
+        .subtask-list {margin-top: 10px;padding-left: 20px;}
+        .subtask-item {display: flex;align-items: center;gap: 8px;margin-bottom: 5px;font-size: 0.9em;color: #ccc;}
+        .subtask-item input[type="checkbox"] {transform: scale(1.2);}
+        .subtask-item input[type="text"] {flex: 1;border: none;background: transparent;color: grey;font-size: 0.9em;border-bottom: 1px dashed #666;outline: none;}
+        .subtask-item.deleting {animation: fadeOutSubtask 0.4s ease forwards;}
+        .subtask-delete-btn {font-size: 1.2em;color: #999;cursor: pointer;background: none;border: none;margin-left: 5px;transition: color 0.2s;}
+        .subtask-delete-btn:hover {color: red;}
+        .subtask-item {opacity: 0;transform: translateX(-20px);animation: fadeInSubtask 0.4s ease forwards;}
+        .subtask-item.deleting {animation: fadeOutSubtask 0.4s ease forwards;}
+        .subtask-item input[type="checkbox"] {transition: transform 0.2s ease;}
+        .subtask-item input[type="checkbox"]:checked {transform: scale(1.2);}
+        .subtask-item.updated {animation: subtaskPulse 0.4s ease;}
+        .subtask-counter {transition: transform 0.3s ease, color 0.3s ease;display: inline-block;}
+        .subtask-counter.animated {animation: pulseCounter 0.4s ease;}
+        
+        .subtask-item input[type="checkbox"]:checked {transform: scale(1.2);box-shadow: 0 0 6px #00cc66;}
+        .bulk-actions {display: flex;gap: 10px;flex-wrap: wrap;margin-top: 0px; justify-content: center;}
+        .bulk-actions button {max-height: 40px; max-width: 40px;font-size: 1em;font-weight: bold;background-color: #555 ;color: white;border-radius: 50%;border: none;box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);transition: background 0.2s, transform 0.2s;cursor: pointer; justify-content: center; align-items: center; padding: 5px;}
+        .bulk-actions button:hover {background-color: rgba(0, 0, 255, 0.294);transform: scale(1.05);}
+        .bulk-actions button:active {transform: scale(0.95);}
+        .togbtn{ height: 50px; width: 50px ; border-radius: 50%; outline: none; border: none; background: #fff; color: #242424; font-weight: 500; font-size: 1em; user-select: none;box-shadow: #000 2px 2px 20px; margin-top: 10px;}
+        option{text-align: left; background-color: #000;}
+        button{border-radius: 20px; outline: none; border: none; touch-action: manipulation;font-size: 1em;}
+        select,input {  touch-action: manipulation;font-size: 1em;}
+        #taskList {padding: 0;margin-top: 20px;display: flex;flex-direction: column;gap: 12px;}
+        #taskList li.task-item {background-color: rgba(255, 255, 255, 0.05);border-radius: 16px;padding: 15px 20px;box-shadow: 0 4px 8px rgba(0,0,0,0.3);display: flex;align-items: flex-start;gap: 12px;position: relative;transition: transform 0.2s ease, background 0.2s ease;border: 1px solid rgba(255, 255, 255, 0.08);}
+        #taskList li.task-item:hover {background-color: rgba(255, 255, 255, 0.08);transform: scale(1.01);}
+        #taskList li.task-item.dragging {opacity: 0.6;transform: scale(1.02);background-color: #333;}
+        .task-item strong {font-size: 1.1em;font-weight: bold;}
+        .task-item small {font-size: 0.85em;color: #aaa;}
+        .task-item .tag,
+        .task-item .priority {margin-top: 10px;font-size: 0.75em;}
+        /* Animation on Add */
+        .task-item {opacity: 0;animation: fadeInSlideUp 0.4s ease forwards;}
+        /* Animation on Delete */         
+        .task-item.deleting {animation: fadeOutSlideDown 0.4s ease forwards;}
+
+        /* Optional: make task text greyish while selected */
+        .task-item.selected strong {color: #aaa;}
+        /* Optional: dim subtasks too */
+        .task-item.selected .subtask-item input[type="text"] {color: #888;}
+        .task-item.selected {background-color: rgba(255, 255, 255, 0.03);box-shadow: 0 0 8px #00e67655;border: 2px dashed #00e67666;opacity: 0.6;filter: grayscale(0.3) brightness(0.9);transition: all 0.3s ease;}
+        input.bulk-select {top: 10px;appearance: none;height: 22px;width: 22px;background-color: transparent;border: 2px solid #ccc;border-radius: 6px;position: relative;cursor: pointer;transition: all 0.2s ease;}
+        input.bulk-select:checked {background-color: #00cc66;border-color: #00cc66;animation: checkboxPop 0.3s ease;}
+        input.bulk-select::after {content: "✔";color: white;font-size: 14px;position: absolute;top: 0px;left: 3px;display: none;}
+        input.bulk-select:checked::after {display: flex;}
+        /* Animation for select */
+        #toast {display: none;position: fixed;bottom: 20px;left: 50%;transform: translateX(-50%);background: linear-gradient(135deg, #333, #111);color: #fff;padding: 14px 24px;border-radius: 12px;box-shadow: 0 6px 20px rgba(0,0,0,0.4);font-size: 1em;z-index: 1000;animation: slideFade 0.4s ease forwards;opacity: 0;}
+        #toast.show {display: block;animation: slideFade 0.4s ease forwards;}
+        #toast button {margin-left: 10px;background: none;border: none;color: #00ccff;font-weight: bold;cursor: pointer;transition: color 0.2s;}
+        #toast button:hover {color: #66e0ff;}
+
+        .task-item {transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;}
+        .task-item:hover {transform: scale(1.015);box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);background-color: rgba(255, 255, 255, 0.06);}   
+        /* Completion pulse */
+        .task-item.completed {animation: completePulse 0.4s ease;}
+        
+        .stat-box {display: inline-block;transition: transform 0.3s ease, color 0.3s ease;}
+        .stat-box.animated { animation: bounceStat 0.4s ease;} 
+
+        .counter-bar {display: flex;justify-content: center;gap: 16px;margin: 20px 0;flex-wrap: wrap;}
+        .counter {background: rgba(255, 255, 255, 0.08);padding: 10px 20px;border-radius: 25px;font-weight: bold;font-size: 1em;color: #fff;box-shadow: 0 4px 10px rgba(0,0,0,0.4);display: flex;align-items: center;gap: 8px;transition: background 0.3s ease;}
+        .counter:hover {background: rgba(255, 255, 255, 0.15);}
+        .counter.total {border: 2px solid #00bcd4;}
+        .counter.completed {border: 2px solid #00cc66;}
+        .counter.pending {border: 2px solid #ffc107;}
+
+        /* Bounce animation already defined */
+        .stat-box.animated {animation: bounceStat 0.4s ease;}
+        .input-bar {display: flex;flex-wrap: wrap;gap: 16px;justify-content: space-between;align-items: center;padding: 20px;background: rgba(255, 255, 255, 0.05);border-radius: 20px;box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);animation: fadeSlideIn 0.5s ease;backdrop-filter: blur(6px);}
+        .input-bar input,
+        .input-bar select {flex: 1 1 160px;padding: 12px 16px;font-size: 1em;border-radius: 12px;border: none;background: rgba(255, 255, 255, 0.08);color: #fff;transition: all 0.3s ease;box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);}
+        .input-bar input:focus,
+        .input-bar select:focus {outline: none;background: rgba(255, 255, 255, 0.15);transform: scale(1.03);box-shadow: 0 0 10px #00ccff, 0 0 20px #00ccff55;}
+        /* Placeholder animation */
+        .input-bar input::placeholder {color: #aaa;transition: opacity 0.3s ease;}
+        .input-bar input:focus::placeholder {opacity: 0.4;}
+
+        /* Specific tweaks */
+        #taskInput { flex: 2 1 260px;}
+        #searchInput {flex: 2 1 240px;}
+        #priorityInput,
+        #repeatInput,
+        #categoryInput {background-image: url("data:image/svg+xml,%3Csvg%20width='12'%20height='8'%20viewBox='0%200%2012%208'%20xmlns='http://www.w3.org/2000/svg'%3E%3Cpath%20d='M1%201l5%205%205-5'%20stroke='%23fff'%20stroke-width='2'%20fill='none'%20stroke-linecap='round'/%3E%3C/svg%3E");background-repeat: no-repeat;background-position: right 12px center;background-size: 12px;appearance: none;padding-right: 36px;}
+
+        /* Date & Time picker fix */
+        input[type="date"],
+        input[type="time"] {text-align: center;appearance: none;}
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {filter: invert(1);cursor: pointer;}
+
+        /* Button styling */
+        .addbtn {height: 48px;width: 48px;border-radius: 50%;background: linear-gradient(135deg, #00cc66, #00e676);color: white;font-size: 1.3em;font-weight: bold;box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);cursor: pointer;transition: transform 0.3s ease, background 0.3s ease;}
+        .addbtn:hover {transform: rotate(12deg) scale(1.1);box-shadow: 0 0 16px #00e676cc;}
+
+        /* 🌞 LIGHT MODE OVERRIDES */
+        body.light-mode {background: linear-gradient(135deg, #f2f2f2, #ffffff);color: #222;}
+        body.light-mode .container {background-color: #ffffff;box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);}
+        body.light-mode .container h1 {color: #00bfa5;text-shadow: 0 0 6px #00bfa555;}
+        body.light-mode ul li {color: #222;}
+        body.light-mode ul::-webkit-scrollbar-thumb {background-color: #bbb;}
+        body.light-mode .task-item {background-color: rgba(0, 0, 0, 0.03);border: 1px solid rgba(0, 0, 0, 0.05);}
+        body.light-mode .task-item:hover {background-color: rgba(0, 0, 0, 0.06);}
+        body.light-mode .task-item strong {color: #111;}
+        body.light-mode .task-item small {color: #555;}
+        body.light-mode .tag,
+        body.light-mode .priority {color: white; /* Keep tag text readable */}
+        body.light-mode .input-bar {background: rgba(0, 0, 0, 0.03);box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);}
+        body.light-mode .input-bar input,
+        body.light-mode .input-bar select {background: rgba(0, 0, 0, 0.05);color: #000;}
+        body.light-mode .input-bar input:focus,
+        body.light-mode .input-bar select:focus {background: rgba(0, 0, 0, 0.1);box-shadow: 0 0 10px #00bfa5, 0 0 20px #00bfa555;}
+        body.light-mode .delete-btn:hover {background-color: #ff4444;}
+        body.light-mode .bulk-actions button {background-color: #ccc;color: #000;}
+        body.light-mode .bulk-actions button:hover {background-color: #a0c8ff;}
+        body.light-mode .counter {background: rgba(0, 0, 0, 0.05);color: #222;}
+        body.light-mode .counter:hover {background: rgba(0, 0, 0, 0.1);}
+        body.light-mode #toast {background: linear-gradient(135deg, #eee, #ccc);color: #222;}
+        body.light-mode #toast button {color: #007acc;}
+        body.light-mode .feature-dialog {background: rgba(255, 255, 255, 0.9);color: #222;}
+        body.light-mode .feature-content h2 {color: #00bfa5;text-shadow: none;}
+        body.light-mode .close-btn {color: #222;}
+        body.light-mode .close-btn:hover {color: #000;text-shadow: 0 0 6px #00bfa5;}
+
+        .features-btn {position: fixed;bottom: 24px;right: 24px;height: 52px;width: 52px;border-radius: 50%;font-size: 1.4em;background: linear-gradient(135deg, #00cc66, #00e676);color: white;border: none;box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);cursor: pointer;z-index: 999;transition: transform 0.3s ease, box-shadow 0.3s ease;}
+        .features-btn:hover {transform: scale(1.15);box-shadow: 0 0 16px #00e676aa;}
+        .feature-dialog {display: none;position: fixed;bottom:  100px;right: 24px;width: 500px;background: rgba(30, 30, 30, 0.85);backdrop-filter: blur(12px);border-radius: 20px;padding: 20px;color: #fff;z-index: 999;box-shadow: 0 8px 30px rgba(0,0,0,0.5);transform: translateY(20px);opacity: 0;pointer-events: none;transition: all 0.4s ease;}
+        .feature-dialog.show {display: block;animation: popUpDialog 0.5s ease-out forwards;pointer-events: auto;}
+        .feature-content h2 {display: flex;font-size: 2em;justify-content: center;color: #00e676;margin-bottom: 12px;text-shadow: 0 0 4px #00e676aa;}
+        .feature-content ul {padding-left: 5px;font-size: 0.95em;list-style-type: disc;}
+        .feature-content li {left: 0px;margin-bottom: 8px;line-height: 1.4em;}
+        /* Animate feature list items */
+        .feature-content ul {padding-left: 0px;list-style: none;margin: 0;animation: fadeInList 0.6s ease-in-out forwards;}
+        .feature-content li {position: relative;margin-bottom: 10px;line-height: 1.6em;opacity: 0;transform: translateX(-15px);animation: slideFadeIn 0.5s ease forwards;animation-delay: var(--delay, 0s);padding-left: 0px;color: #e0ffe8;transition: transform 0.3s ease, color 0.3s ease;}
+        .feature-content li::before {position: absolute;left: 0;color: #00e676;font-size: 0.8em;}
+        /* Hover effect */
+        .feature-content li:hover {transform: translateX(0) scale(1.02);color: gold;}
+        /* Close button */
+        .close-btn {position: absolute;top: 10px;right: 14px;font-size: 1.4em;font-weight: bold;cursor: pointer;color: #ccc;background: none;border: none;transition: transform 0.3s ease, color 0.3s ease;z-index: 1000;}
+        .close-btn:hover {color: #fff;transform: scale(1.2) rotate(90deg);text-shadow: 0 0 8px #00e676;}
+        .close-btn:active {transform: scale(0.9) rotate(180deg);color: #ff4d4d;}
+        
+        /* Tag and Priority Fade & Slide In */
+        .tag,.priority {opacity: 0;transform: translateY(-10px);animation: badgeFadeIn 0.5s ease forwards;animation-delay: 0.3s;}
+        
+        .tag:hover,.priority:hover {  transform: scale(1.05);  box-shadow: 0 0 8px rgba(255,255,255,0.2);  transition: transform 0.2s ease, box-shadow 0.2s ease;  cursor: default;}
+        .priority.updated { animation: pulsePriority 0.5s ease;}
+
+        /* Keyframes */
+        .container {background-color: #242424;border-radius: 20px;width: 1100px;padding: 20px;box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);user-select: none;opacity: 0;transform: translateY(30px) scale(0.98);animation: fadeInContainer 1s ease forwards;transition: transform 0.3s ease, box-shadow 0.3s ease;}
+        .container:hover {transform: translateY(25px) scale(1);box-shadow: 0 0 40px rgba(0, 255, 102, 0.3);}
+        
+        .container h1 {font-size: 2.5em;font-weight: 700;text-align: center;color: #00e676;text-shadow: 0 0 8px #00e676, 0 0 20px #00e67655;letter-spacing: 2px;margin-bottom: 20px;animation: pulseTitle 3s ease-in-out infinite, fadeSlideIn 1s ease forwards;user-select: none;}
+        /* Fade and slide from top */
+        @keyframes pulseCounter {0%   { transform: scale(1);   color: #ccc; }50%  { transform: scale(1.2); color: #00ccff; }100% { transform: scale(1);   color: #ccc; }}
+        @keyframes subtaskPulse {0% { background-color: rgba(255, 255, 255, 0.1); }100% { background-color: transparent; }}
+        @keyframes fadeOutSubtask {to { opacity: 0; transform: translateX(20px); }}
+        @keyframes fadeInSubtask {to { opacity: 1; transform: translateX(0); }}
+        @keyframes completePulse {  0% { background-color: rgba(0, 204, 102, 0.2); }  100% { background-color: transparent; }}
+        @keyframes bounceStat {0%   { transform: scale(1);   color: #ccc; }50%  { transform: scale(1.3); color: #00ccff; }100% { transform: scale(1);   color: #ccc; }}
+        @keyframes fadeOutSubtask { to {opacity: 0; transform: translateX(20px);}}
+        @keyframes checkboxPop {0% {  transform: scale(1);}50% {  transform: scale(1.25);}100% {  transform: scale(1);}}
+        @keyframes markComplete { 0% { background-color: rgba(0, 204, 102, 0.2); }100% { background-color: transparent; }}
+        @keyframes pulsePriority {0% { transform: scale(1); background-color: #fff; color: #000; }50% { transform: scale(1.15); }100% { transform: scale(1); }}
+        @keyframes fadeInSlideUp {to {opacity: 1;transform: translateY(0);}}
+        @keyframes fadeOutSlideDown {to {opacity: 0;transform: translateY(20px);  }}
+        @keyframes badgeFadeIn {to {  opacity: 1;  transform: translateY(0);}}
+        @keyframes slideFade {0% {  transform: translateX(-50%) translateY(30px);  opacity: 0;}100% {  transform: translateX(-50%) translateY(0);  opacity: 1;}}
+        @keyframes slideFadeIn {to {  opacity: 1;  transform: translateX(0);}}
+        @keyframes fadeInContainer {to {opacity: 1;transform: translateY(0) scale(1);}}
+        @keyframes fadeSlideIn {0% {  opacity: 0;  transform: translateY(-20px) scale(0.95);}100% {  opacity: 1;  transform: translateY(0) scale(1);}}
+        /* Glowing pulse */
+        @keyframes pulseTitle {0% {  text-shadow: 0 0 8px #00e676, 0 0 20px #00e67655;}50% {  text-shadow: 0 0 12px #00ff88, 0 0 28px #00ff8888;}100% {  text-shadow: 0 0 8px #00e676, 0 0 20px #00e67655;}}
+        @keyframes fadeInReminder {from { opacity: 0; transform: translateY(20px); }to { opacity: 1; transform: translateY(0); }}
+        @keyframes pulseReminder {0%, 100% { text-shadow: 0 0 8px #00e676aa; }50% { text-shadow: 0 0 12px #00ff88; }}
+        @keyframes slideInReminder {from { opacity: 0; transform: translateX(-10px); }to { opacity: 1; transform: translateX(0); }}
+        @keyframes popUpDialog {0% {  opacity: 0;  transform: translateY(30px) scale(0.95);}100% {  opacity: 1;  transform: translateY(0) scale(1);}}
+        @keyframes fadeSlideIn {to {opacity: 1;transform: translateY(0);}}
+        @keyframes gradientBG {0% {background-position: 0% 50%;}50% {background-position: 100% 50%;}100% {background-position: 0% 50%;}}
+        /* Animations */
+        @keyframes fadeInProgress {from {opacity: 0; transform: translateY(20px);}to {opacity: 1; transform: translateY(0);}}
+        @keyframes pulseProgress {0%, 100% { text-shadow: 0 0 8px #00e676aa; }50% { text-shadow: 0 0 16px #00ff88; }}
+
+        .reminder-box {background: rgba(255, 255, 255, 0.05);padding: 20px;border-radius: 16px;box-shadow: 0 4px 14px rgba(0,0,0,0.3);margin-top: 20px;animation: fadeInReminder 1s ease forwards;}
+        .reminder-title {font-size: 1.8em;color: #00e676;text-shadow: 0 0 8px #00e676aa;margin-bottom: 15px;animation: pulseReminder 3s infinite;}
+        .reminder-inputs {display: flex;flex-wrap: wrap;gap: 12px;margin-bottom: 16px;}
+        .reminder-input {margin-top: 20px;width: 770px;flex: 1 1 220px;padding: 10px 14px;font-size: 1em;border: none;border-radius: 12px;background: rgba(255,255,255,0.1);color: grey;box-shadow: inset 0 0 5px rgba(0,0,0,0.3);}
+        .reminder-input:focus {outline: none;background: rgba(255,255,255,0.2);box-shadow: 0 0 10px #00ccff;}
+        .reminder-btn {background: linear-gradient(135deg, #00cc66, #00e676);border: none;color: white;font-weight: bold;padding: 10px 20px;border-radius: 20px;cursor: pointer;transition: transform 0.3s ease;}
+        .reminder-btn:hover {transform: scale(1.05);box-shadow: 0 0 10px #00e676aa;}
+        .reminder-list {list-style-type: none;padding: 0;margin: 0;}
+        .reminder-list li {background: rgba(255, 255, 255, 0.05);padding: 10px 15px;border-radius: 10px;margin-bottom: 10px;color: #fff;animation: slideInReminder 0.4s ease forwards;}
+        /* Reminder Title */
+        #reminderTitle {width: 600px;flex: 1 1 160px;padding: 12px 16px;font-size: 1em;border: none;background: rgba(255, 255, 255, 0.08);color: #ffffff;transition: all 0.3s ease;box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);outline: none;border-radius: 20px;padding-left: 10px;font-weight: 700;opacity: 0;transform: translateY(-20px);animation: fadeSlideIn 0.6s forwards;animation-delay: 0.3s;touch-action: manipulation;}
+        /* Reminder Time */
+        #reminderTime {width: 200px;flex: 1 1 160px;padding: 12px 16px;font-size: 1em;border: none;background: rgba(255, 255, 255, 0.08);color: grey;transition: all 0.3s ease;box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);outline: none;border-radius: 20px;padding-left: 10px;opacity: 0;transform: translateY(20px);animation: fadeSlideIn 0.6s forwards;animation-delay: 0.6s;}
+        /* Animation Keyframes */
+       
+        .reminder-box h2{color: goldenrod; transition: .5s ease;}
+        .reminder-box h2:hover{color: gold;}
+
+        .progress-box {background: rgba(255, 255, 255, 0.05);padding: 20px;margin-top: 20px;border-radius: 16px;box-shadow: 0 4px 14px rgba(0,0,0,0.3);animation: fadeInProgress 1s ease forwards;}
+        .progress-title {color: #00e676;text-align: center;font-size: 1.8em;text-shadow: 0 0 10px #00e676aa;animation: pulseProgress 3s infinite;}
+        .progress-container {margin-top: 20px;}
+        .progress-labels {display: flex;justify-content: space-between;color: #ccc;font-size: 0.9em;margin-bottom: 5px;}
+        .progress-bar-outer {width: 100%;height: 20px;background: #444;border-radius: 12px;overflow: hidden;box-shadow: inset 0 0 8px rgba(0,0,0,0.5);}
+        .progress-bar-inner {height: 100%;width: 0%;background: linear-gradient(90deg, #00cc66, #00e676);transition: width 0.8s ease;border-radius: 12px 0 0 12px;box-shadow: 0 0 10px #00e67688;}
+        .progress-percent {text-align: right;margin-top: 8px;color: #00e676;font-weight: bold;font-size: 1em;animation: fadeSlideIn 1s ease forwards;}
+        
+    </style>
+</head>
+<body>
+<button class="features-btn" onclick="toggleFeatureDialog()">✨</button>
+<div class="feature-dialog" id="featureDialog">
+  <div class="feature-content">
+    <span class="close-btn" onclick="toggleFeatureDialog()">×</span>
+    <h2>✨ Features</h2>
+    <ul>
+      <li>🔹 1. Task Creation & Input Functionality</li>
+      <p>📝 Add New Tasks:</p>
+      <p>Users can input task titles with intuitive placeholders and smooth form interactions.</p>
+      <p>🗓️ Set Due Date and Time:</p>
+      <p>Each task can be assigned a due date and optional time, allowing for precise scheduling.</p>
+      <p>🚦 Prioritize Tasks:</p>
+      <p>Choose between High (🔴), Medium (🟡), and Low (🟢) priority levels. Priorities are visually styled using color-coded badges.</p>
+      <p>🗃️ Categorize by Context:</p>
+      <p>Tasks can be tagged with categories like:<br><br>Work (🏢)<br>Personal (👤)<br>Study (📖)<br>Shopping (🛍️)<br>Other (📁)</p>
+      <p>🔁 Recurring Tasks:</p>
+      <p>Schedule tasks to repeat daily, weekly, or monthly. When completed, a new instance is auto-generated based on the selected frequency.</p>
+
+       <li>🔹 2. Task Interaction & Management</li>
+      <p>✍️ Inline Editing:</p>
+      <p>Task titles can be edited directly within the interface by clicking on them.</p>
+      <p>📑 Subtask System:</p>
+      <p>Add subtasks beneath main tasks.<br><br>Includes editable text fields and completion checkboxes.<br>Real-time subtask completion counters with visual feedback.<br>Subtask animations for add/remove.</p>
+      <p>📥 Bulk Selection & Actions:</p>
+      <p>Select multiple tasks using checkboxes and perform actions in bulk:<br><br>✅ Mark as complete<br>↩️ Unmark (set back to pending)<br>🗑️ Delete selected<br>📥 Import (JSON)<br>📤 Export (PDF)</p>
+      <p>☰ Drag-and-Drop Sorting:</p>
+      <p>Tasks can be rearranged interactively by dragging a dedicated handle.</p>
+      <p>🔁 Completion Effects:</p>
+      <p>Completed tasks fade and animate for a satisfying experience. Recurring tasks are instantly regenerated with updated due dates.</p>
+      <p>📊 Progress Tracker & Stats</p>
+      <p>Visual completion bar and bouncing counters show your productivity at a glance.</p>
+
+      <li>🔹 3. Intelligent Time-Based Features</li>
+      <p>⏰ Countdown Timer:</p>
+      <p>Tasks with due dates and times show a live countdown ("⏳ 2h 30m 20s left").</p>
+      <p>🔔 Smart Reminders:</p>
+      <p>If a task is due within one minute, the user receives a pop-up alert notification.</p>
+      <p>📅 Sort by Due Date:</p>
+      <p>Tasks can be sorted by due date and time (ascending/descending) to prioritize urgent items.</p>
+      <p>⏰Scheduled Reminders</p>
+      <p>Every timed task gets its own live ⏳ countdown clock.Receive alerts when tasks are due in the next minute</p>
+
+      <li>🔹 4. Advanced Search & Filtering</li>
+      <p>🔍 Real-Time Search:</p>
+      <p>Filters tasks based on:<br><br>Task titles<br>Due dates<br>Categories<br>Subtask content</p>
+      <p>🔄 Instant Result Updates:</p>
+      <p>Task list updates live as the user types, improving usability and focus.</p>
+      <li>🔹 5. UI/UX Design Enhancements</li>
+      <p>🌌 Animated Background:</p>
+      <p>A gradient animation cycles through cool tones to create a modern, ambient feel.</p>
+      <p>✨ Smooth Animations:</p>
+      <p>Every interaction (adding, editing, completing, deleting) is supported by smooth CSS transitions and keyframe animations.</p>
+      <p>🌗 Light & Dark Mode:</p>
+      <p>Users can toggle between light and dark themes. Mode is saved across sessions using localStorage.</p>
+      <p>🎯 Task Statistics:</p>
+      <p>Displays task counts for:<br><br>📋 Total<br>✅ Completed<br>⏳ Pending<br><br>Bounce effects emphasize changes when tasks are added or modified.</p>
+      <p>🛠️ Floating Toolbar:</p>
+      <p>A compact control panel enables task management tools to be accessed quickly without cluttering the UI.</p>
+      <p>🔄 Undo Delete Toast:</p>
+      <p>After deletion, a toast notification with an “Undo” button appears. Tasks can be restored if clicked in time.</p>
+
+      <li>🔹 6. Import/Export Capabilities</li>
+      <p>📁 JSON Import:</p>
+      <p>Users can upload a JSON file to restore or merge tasks.</p>
+      <p>📄 PDF Export:</p>
+      <p>Generates a styled PDF version of the task list (including subtasks, categories, priorities, and status) using html2pdf.js.</p>
+
+      <li>🔹 7. Feature Discovery Interface</li>
+      <p>✨ Floating “Features” Button:</p>
+      <p>A toggleable floating action button opens a modal that lists all major app features in a beautiful, animated layout.</p>
+      <p>📜 Animated Dialog Box:</p>
+      <p>Feature list appears with fade and slide-in animations. Improves discoverability and onboarding.</p>
+      
+       <li>📌 Summary</li>
+       <p>This app combines full task lifecycle management (creation, completion, deletion, sorting, reminders, repetition) with a sleek, modern UI, smart localStorage-based persistence, subtask hierarchy, and utility features like search, bulk tools, and import/export. It’s not just a task tracker—it’s a productivity dashboard.</p>
+       <li>✨ Why It Stands Out:</li>
+       <p>Unlike ordinary to-do apps, this system combines robust functionality with elegant visual design, micro-interactions, reminders, and recurring logic. Whether you're organizing work projects or grocery lists, it's built to keep you focused, efficient, and inspired.</p>
+    </ul>
+  </div>
+</div>
+    <div class="container">
+        <h1>TO-DO LIST</h1>
+        <div class="input-bar">
+          <input class="task" type="text" id="taskInput" placeholder="✍️ Enter Task">
+          <input class="dat" type="date" id="dueDateInput">
+          <input class="dat" type="time" id="timeInput">
+           <select class="dat" id="priorityInput">
+            <option value="Low">🟢 Low</option>
+            <option value="Medium">🟡 Medium</option>
+            <option value="High">🔴 High</option>
+           </select>
+           <select class="dat" id="repeatInput">
+            <option value="None">🔁 None</option>
+            <option value="Daily">📅 Daily</option>
+            <option value="Weekly">🗓️ Weekly</option>
+            <option value="Monthly">📆 Monthly</option>
+           </select>
+           <select class="dat" id="categoryInput">
+            <option value="Work">🏢 Work</option>
+            <option value="Personal">👤 Personal</option>
+            <option value="Study">📖 Study</option>
+            <option value="Shopping">🛍️ Shopping</option>
+            <option value="Other">📁 Other</option>
+           </select>
+           <input class="search-box" type="text" id="searchInput" placeholder="🔍 Search">
+           <button class="addbtn" onclick="addTask()">➕</button>
+        </div>
+        <div class="counter-bar">
+          <div class="stat-box counter total"><span>📋 Total:</span> <span id="totalCount">0</span></div>
+          <div class="stat-box counter completed"><span>✅ Completed:</span> <span id="completedCount">0</span></div>
+          <div class="stat-box counter pending"><span>⏳ Pending:</span> <span id="pendingCount">0</span></div>
+        </div>
+        <div class="bulk-actions">
+           <button class="togbtn" onclick="selectAllTasks()" title="Select All">✅</button>
+           <button class="togbtn" onclick="deleteSelectedTasks()" title="Delete">🗑️</button>
+           <button class="togbtn" onclick="completeSelectedTasks()"title="Mark">✔️</button>
+           <button class="togbtn" onclick="uncompleteSelectedTasks()" title="Unmark">↩️</button>
+           <button class="togbtn" onclick="exportTasksAsPDF()" title="Export">📤</button>
+           <input type="file" id="importFile" accept=".json" style="display:none" onchange="importTasks(event)">
+           <button class="togbtn" onclick="document.getElementById('importFile').click()" title=" Import">📥</button>
+           <button class="togbtn" onclick="sortByDate()" title="Sort by Date">📅</button>
+           <button class="togbtn" onclick="toggleMode()" id="modeToggle" title="Light Mode">🌙</button>
+        </div>
+        <ul id="taskList"></ul>
+        <div id="toast"> Task deleted. <button id="undoBtn" style="margin-left:10px; background: none; border: none; color: #00ccff; cursor: pointer;">Undo</button></div>
+    <section id="progress-tracking" class="progress-box">
+      <h2 class="progress-title">📊 Progress Tracker</h2>
+      <div class="progress-container">
+        <div class="progress-labels">
+          <span>✅ Completed</span>
+          <span>⏳ Pending</span>
+        </div>
+        <div class="progress-bar-outer">
+          <div class="progress-bar-inner" id="progressFill"></div>
+        </div>
+        <div class="progress-percent" id="progressPercent">0%</div>
+      </div>
+<div id="reminders" class="reminder-box">
+        <h2>⏰ SMART REMINDERS</h2>
+        <input type="text" id="reminderTitle" placeholder="Reminder Title" />
+        <input type="datetime-local" id="reminderTime" />
+        <button onclick="addReminder()" class="reminder-btn">Add Reminder</button>
+        <ul id="reminderList"></ul>
+    </div>
+    </div>  
+  <script>
+     let reminders = JSON.parse(localStorage.getItem('reminders')) || [];
+
+function importTasksFromURL() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const encoded = urlParams.get("tasks");
+
+  if (encoded) {
+    try {
+      const taskTitles = JSON.parse(decodeURIComponent(encoded));
+      taskTitles.forEach(title => createTaskElement(title, "", "Other", "Low", "", false, "None", []));
+      alert("📥 Imported tasks from shared link!");
+    } catch (e) {
+      console.error("Invalid shared task data.");
+    }
+  }
+}
+
+
+   function createKanbanTask(taskText, stage = 'todo') {
+  const li = document.createElement("li");
+  li.textContent = taskText;
+  li.setAttribute("draggable", "true");
+
+  li.addEventListener("dragstart", () => {
+    li.classList.add("dragging");
+  });
+
+  li.addEventListener("dragend", () => {
+    li.classList.remove("dragging");
+  });
+
+  document.getElementById(stage + "List").appendChild(li);
+}
+
+document.querySelectorAll(".kanban-list").forEach(list => {
+  list.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    list.classList.add("drag-over");
+  });
+
+  list.addEventListener("dragleave", () => {
+    list.classList.remove("drag-over");
+  });
+
+  list.addEventListener("drop", (e) => {
+    const dragging = document.querySelector(".dragging");
+    if (dragging) list.appendChild(dragging);
+    list.classList.remove("drag-over");
+  });
+});
+
+   function addReminder() {
+     const title = document.getElementById('reminderTitle').value;
+     const time = document.getElementById('reminderTime').value;
+     if (!title || !time) return alert("Please fill in both fields.");
+     reminders.push({ title, time });
+     localStorage.setItem('reminders', JSON.stringify(reminders));
+     renderReminders();
+   }
+ 
+   function renderReminders() {
+     const list = document.getElementById('reminderList');
+     list.innerHTML = '';
+     reminders.forEach((reminder, i) => {
+       const li = document.createElement('li');
+       li.textContent = `${reminder.title} at ${new Date(reminder.time).toLocaleString()}`;
+       list.appendChild(li);
+     });
+   }
+ 
+   function checkReminders() {
+     const now = new Date().getTime();
+     reminders = reminders.filter(reminder => {
+       const reminderTime = new Date(reminder.time).getTime();
+       if (reminderTime <= now) {
+         alert(`⏰ Reminder: ${reminder.title}`);
+         return false; // remove triggered reminder
+       }
+       return true;
+     });
+     localStorage.setItem('reminders', JSON.stringify(reminders));
+     renderReminders();
+   }
+ 
+   setInterval(checkReminders, 60000); // check every minute
+   renderReminders();
+    const taskInput = document.getElementById("taskInput");
+    const dueDateInput = document.getElementById("dueDateInput");
+    const taskList = document.getElementById("taskList");
+    let sortAscending = true;
+    let lastDeletedTask = null;
+    let toastTimeout = null;
+    let draggedItem = null;
+    let lastDeletedSubtask = null;
+    let subtaskUndoTimeout = null;
+    function addTask() {
+      const taskText = taskInput.value.trim();
+      const dueDate = dueDateInput.value;
+      const category = document.getElementById("categoryInput").value;
+      const priority = document.getElementById("priorityInput").value;
+      const time = document.getElementById("timeInput").value;
+      const repeat = document.getElementById("repeatInput").value;
+      if (taskText === '') {
+      alert("💡 PLEASE MENTION YOUR TASK! 💡");
+      return;
+      }
+       createTaskElement(taskText, dueDate, category, priority, time, false, repeat); 
+       alert("💡 NEW TASK SUCCESSFULLY CREATED! 💡");
+       taskInput.value = "";
+       dueDateInput.value = "";
+       document.getElementById("timeInput").value = "";
+       saveData();
+       updateCounters();
+      }
+    function createTaskElement(taskText, dueDate, category = "Other", priority = "Low", time = "", isCompleted = false, repeat = "None", subtasks = []) {
+      const li = document.createElement("li");
+      // ✅ Create the completion circle
+      const completeCircle = document.createElement("span");
+      completeCircle.classList.add("complete-toggle");
+      completeCircle.innerHTML = isCompleted ? "✔" : "";
+      li.appendChild(completeCircle);
+      if (isCompleted) li.classList.add("completed");
+      // ✅ Make the circle clickable
+      completeCircle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const nowCompleted = li.classList.toggle("completed");
+      completeCircle.innerHTML = nowCompleted ? "✔" : "";
+      li.setAttribute("data-completed", nowCompleted);
+      // 🔁 Recurring task logic
+      if (nowCompleted && repeat !== "None" && dueDate) {
+      const nextDate = getNextDueDate(dueDate, repeat);
+      const subtaskEls = li.querySelectorAll(".subtask-list .subtask-item");
+      const subtasks = Array.from(subtaskEls).map(item => {
+      const input = item.querySelector("input[type='text']");
+      return {
+         text: input.value.trim(),
+         done: false
+        };
+      }).filter(sub => sub.text !== "");
+      createTaskElement(taskText, nextDate, category, priority, time, false, repeat, subtasks);
+      }
+      saveData();
+      updateCounters();
+      });
+      li.classList.add("task-item");
+      li.setAttribute("draggable", "true");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.classList.add("bulk-select");
+      checkbox.addEventListener("change", () => {
+      li.classList.toggle("selected", checkbox.checked);
+      });
+      li.appendChild(checkbox);
+      li.setAttribute("data-repeat", repeat); // Now it's defined!
+      completeCircle.innerHTML = isCompleted ? "✔" : "";
+      if(isCompleted) li.classList.add("completed");
+      // 🟦 Drag handle (☰)
+      const handle = document.createElement("span");
+      handle.innerHTML = "&#9776;";
+      handle.classList.add("drag-handle");
+      li.appendChild(handle);
+
+      // 🟩 Task text + due date
+      const contentWrapper = document.createElement("div");
+      contentWrapper.style.flex = "1";
+      let dueText = '';
+      if (dueDate || time) {
+      dueText = ` <small style="color: #ccc;">(Due:${dueDate ? ' ' + dueDate : ''}${time ? ' ' + time : ''})</small>`;
+      }
+      const taskTitle = document.createElement("strong");
+      taskTitle.textContent = taskText;
+      taskTitle.style.cursor = "pointer";
+      taskTitle.contentEditable = false;
+      taskTitle.spellcheck = false;
+      contentWrapper.appendChild(taskTitle);
+      taskTitle.addEventListener("click", () => {
+        taskTitle.contentEditable = true;
+        taskTitle.focus();
+      });
+  
+      // Save on blur or Enter
+      taskTitle.addEventListener("blur", () => {
+        taskTitle.contentEditable = false;
+        saveData();
+      });
+      taskTitle.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          taskTitle.blur();}
+        });
+      if (dueDate || time) {
+        const due = document.createElement("small");
+        due.style.color = "#ccc";
+        due.textContent = `(Due:${dueDate ? ' ' + dueDate : ''}${time ? ' ' + time : ''})`;
+        contentWrapper.appendChild(due);
+      }
+      // ⏳ Countdown Display
+      if (dueDate || time) {
+        const countdown = document.createElement("div");
+        countdown.style.color = "#ffcc00";
+        countdown.style.fontSize = "0.8em";
+        countdown.style.marginTop = "5px";
+        contentWrapper.appendChild(countdown);
+        const targetTime = new Date(`${dueDate}T${time || "00:00"}`);
+        function updateCountdown() {
+          const now = new Date();
+          const diff = targetTime - now;
+          if (diff <= 0) {
+            countdown.textContent = "⏰ Due!";
+            countdown.style.color = "red";
+            return;
+          }
+          const hours = Math.floor(diff / 1000 / 60 / 60);
+          const minutes = Math.floor((diff / 1000 / 60) % 60);
+          const seconds = Math.floor((diff / 1000) % 60);
+          countdown.textContent = `⏳ ${hours}h ${minutes}m ${seconds}s left`;
+        }
+        updateCountdown(); // Initial call
+        setInterval(updateCountdown, 1000); // Update every second
+      }
+        const tag = document.createElement("span");
+      tag.classList.add("tag", category);
+      tag.textContent = category;
+      contentWrapper.appendChild(tag);
+      const priorityBadge = document.createElement("span");
+      priorityBadge.classList.add("priority", priority);
+      priorityBadge.textContent = priority;
+      contentWrapper.appendChild(priorityBadge);
+      priorityBadge.classList.add("updated");
+      setTimeout(() => priorityBadge.classList.remove("updated"), 500);
+      // Subtask Counter
+      const subtaskCounter = document.createElement("div");
+      subtaskCounter.classList.add("subtask-counter");
+      contentWrapper.appendChild(subtaskCounter);
+      // Subtask List
+      const subtaskList = document.createElement("div");
+      subtaskList.style.display = "none";
+      subtaskList.classList.add("subtask-list");
+      contentWrapper.appendChild(subtaskList);
+      const toggleBtn = document.createElement("button");
+      toggleBtn.textContent = "🔽";
+      toggleBtn.style.marginLeft = "10px";
+      toggleBtn.style.background = "none";
+      toggleBtn.style.border = "none";
+      toggleBtn.style.cursor = "pointer";
+      toggleBtn.style.color = "#00bcd4";
+      toggleBtn.title = "Toggle Subtasks";
+      toggleBtn.addEventListener("click", () => {
+        subtaskList.style.display = subtaskList.style.display === "none" ? "block" : "none";
+      });
+      contentWrapper.appendChild(toggleBtn);
+      // Load existing subtasks
+      subtasks.forEach(sub => {
+        if (typeof sub === "string") {
+          addSubtask(subtaskList, sub, false); // for legacy string-only data
+        } else {
+          addSubtask(subtaskList, sub.text, sub.done);
+        }
+      });
+      // Add Subtask Button
+      const addSubtaskBtn = document.createElement("button");
+      addSubtaskBtn.textContent = "➕ Add Subtask";
+      addSubtaskBtn.style.marginTop = "10px";
+      addSubtaskBtn.style.padding = "4px 10px";
+      addSubtaskBtn.style.fontSize = "0.8em";
+      addSubtaskBtn.style.borderRadius = "12px";
+      addSubtaskBtn.style.border = "none";
+      addSubtaskBtn.style.cursor = "pointer";
+      addSubtaskBtn.style.backgroundColor = "transparent";
+      addSubtaskBtn.style.color = "grey";    
+      addSubtaskBtn.addEventListener("click", () => {
+        addSubtask(subtaskList);
+      });
+      contentWrapper.appendChild(addSubtaskBtn);
+      li.appendChild(contentWrapper);
+      if (isCompleted) li.classList.add("completed");
+      // 🟥 Delete button
+      const deleteBtn = document.createElement("span");
+      deleteBtn.innerHTML = "\u00d7";
+      deleteBtn.classList.add("delete-btn");
+      li.appendChild(deleteBtn);
+     
+      // Delete task
+      deleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      alert("💡 TASK DELETED SUCCESSFULLY 💡")
+    
+      // Save deleted task info
+      lastDeletedTask = {
+      text: taskTitle.innerText,
+      dueDate,
+      time,
+      category,
+      priority,
+      isCompleted: li.classList.contains("completed"),
+      repeat: li.getAttribute("data-repeat") || "None",
+      subtasks // ✅ include this
+      };
+      li.classList.add("deleting");
+      setTimeout(() => {
+        li.remove();
+        saveData();
+      }, 400);
+      showToast();
+      });
+      // Drag & drop
+      li.addEventListener("dragstart", (e) => {
+        draggedItem = li;
+        setTimeout(() => li.classList.add("dragging"), 0);
+      });
+      li.addEventListener("dragend", () => {
+        li.classList.remove("dragging");
+      });
+      li.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        li.classList.add("drag-over");
+      });
+      li.addEventListener("dragleave", () => {
+        li.classList.remove("drag-over");
+      });
+      li.addEventListener("drop", (e) => {
+        e.preventDefault();
+        li.classList.remove("drag-over");
+        taskList.insertBefore(draggedItem, li);
+        saveData();
+      });
+      taskList.appendChild(li);
+      updateCounters();
+      updateSubtaskCounter(subtaskList, subtaskCounter);      
+      return li;
+    }
+    function saveData() {
+      const tasks = [];
+      document.querySelectorAll("#taskList li").forEach(li => {
+      const text = li.querySelector("strong")?.innerText || '';
+      const dueDateMatch = li.querySelector("small")?.textContent.match(/\d{4}-\d{2}-\d{2}/);
+      const dueTimeMatch = li.querySelector("small")?.textContent.match(/\d{2}:\d{2}/);
+      const dueDate = dueDateMatch ? dueDateMatch[0] : "";
+      const dueTime = dueTimeMatch ? dueTimeMatch[0] : "";
+      const category = li.querySelector(".tag")?.textContent || 'Other';
+      const priority = li.querySelector(".priority")?.textContent || 'Low';
+      const repeat = li.getAttribute("data-repeat") || "None";
+      const subtaskEls = li.querySelectorAll(".subtask-list .subtask-item");
+      const subtasks = Array.from(subtaskEls).map(item => {
+      const input = item.querySelector("input[type='text']");
+      const checkbox = item.querySelector("input[type='checkbox']");
+      return {
+      text: input.value.trim(),
+      done: checkbox.checked
+      };
+      }).filter(sub => sub.text !== "");
+      tasks.push({
+      text: text.trim(),
+      dueDate: dueDate,
+      time: dueTime,
+      category: category,
+      priority: priority,
+      repeat: repeat,
+      completed: li.classList.contains("completed"),
+      reminded: false,
+      subtasks: subtasks
+      });
+      }); 
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+      updateCounters();
+    }
+    function loadData() {
+      const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+      tasks.forEach(task => {
+      createTaskElement(task.text, task.dueDate, task.category, task.priority, task.time, task.completed, task.repeat, task.subtasks);
+      });
+    }
+    // Real-time filtering
+    document.getElementById("searchInput").addEventListener("input", function () {
+    const keyword = this.value.toLowerCase();
+    document.querySelectorAll("#taskList li").forEach(li => {
+    const taskText = li.querySelector("strong")?.textContent.toLowerCase() || "";
+    const dueDate = li.querySelector("small")?.textContent.toLowerCase() || "";
+    const tag = li.querySelector(".tag")?.textContent.toLowerCase() || "";
+    // Get all subtasks text
+    const subtaskTexts = Array.from(li.querySelectorAll(".subtask-item input[type='text']"))
+    .map(input => input.value.toLowerCase())
+    .join(" ");
+    const matches =
+    taskText.includes(keyword) ||
+    dueDate.includes(keyword) ||
+    tag.includes(keyword) ||
+    subtaskTexts.includes(keyword);
+    li.style.display = matches ? "flex" : "none";
+    });
+    });
+    function toggleMode() {
+      const body = document.body;
+      const toggleBtn = document.getElementById("modeToggle");
+      body.classList.toggle("light-mode");
+      const isLight = body.classList.contains("light-mode");
+      localStorage.setItem("theme", isLight ? "light" : "dark");
+      toggleBtn.textContent = isLight ? "🌞" : "🌙";
+    }
+    // Load theme on startup
+    window.onload = function () {
+      const savedTheme = localStorage.getItem("theme");
+      if (savedTheme === "light") {
+        document.body.classList.add("light-mode");
+        document.getElementById("modeToggle").textContent = "🌞";
+      }
+      loadData();
+      updateCounters();
+    importTasksFromURL();
+
+    };
+    setInterval(() => {
+    const now = new Date();
+    document.querySelectorAll("#taskList li").forEach(li => {
+      if (li.classList.contains("completed")) return;
+      if (li.dataset.reminded === "true") return;
+      const smallTag = li.querySelector("small");
+      if (!smallTag) return;
+      const dueText = smallTag.textContent;
+      const matchDate = dueText.match(/\d{4}-\d{2}-\d{2}/);
+      const matchTime = dueText.match(/\d{2}:\d{2}/);
+      if (!matchDate || !matchTime) return;
+      const dateStr = matchDate[0];
+      const timeStr = matchTime[0];
+      const targetTime = new Date(`${dateStr}T${timeStr}`);
+      const diff = targetTime - now;
+      if (diff > 0 && diff <= 60000) {
+        const taskText = li.querySelector("strong")?.textContent || "Task";
+        alert(`🔔 Reminder: Task "${taskText}" is due in less than a minute!`);
+        li.dataset.reminded = "true";
+      }
+    });
+    }, 30000);
+    function sortByDate() {
+      const list = document.getElementById("taskList");
+      const tasks = Array.from(list.children);
+      tasks.sort((a, b) => {
+        const aDate = getTaskDateTime(a);
+        const bDate = getTaskDateTime(b);
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return sortAscending ? 1 : -1;
+        if (!bDate) return sortAscending ? -1 : 1;
+        return sortAscending ? aDate - bDate : bDate - aDate;
+      });
+      tasks.forEach(task => list.appendChild(task));
+      sortAscending = !sortAscending;
+    }
+    function showToast() {
+      const toast = document.getElementById("toast");
+      toast.classList.add("show");
+    
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+      toast.classList.remove("show");
+      lastDeletedTask = null;
+     },5000);
+    }
+    document.getElementById("undoBtn").addEventListener("click", () => {
+      if (lastDeletedTask) {
+        const li = createTaskElement(
+          lastDeletedTask.text,
+          lastDeletedTask.dueDate,
+          lastDeletedTask.category,
+          lastDeletedTask.priority,
+          lastDeletedTask.time,
+          lastDeletedTask.isCompleted,
+          lastDeletedTask.repeat,
+          lastDeletedTask.subtasks || []
+        );
+        saveData();
+        alert("💡 TASK RETRIEVED SUCCESSFULLY 💡");
+      }
+      lastDeletedTask = null;
+      document.getElementById("toast").style.display = "none";
+      clearTimeout(toastTimeout);
+    });
+    function getNextDueDate(currentDate, repeat) {
+      const date = new Date(currentDate);      
+      switch (repeat) {
+        case "Daily":
+          date.setDate(date.getDate() + 1);
+          break;
+        case "Weekly":
+          date.setDate(date.getDate() + 7);
+          break;
+        case "Monthly":
+          date.setMonth(date.getMonth() + 1);
+          break;
+      }      
+      return date.toISOString().split("T")[0]; // YYYY-MM-DD
+    }
+    function addSubtask(container, text = "", done = false) {
+      const subtaskItem = document.createElement("div");
+      subtaskItem.classList.add("subtask-item");      
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = done;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = text;
+    
+      // 🗑️ Delete Button
+      const deleteBtn = document.createElement("button");
+      deleteBtn.innerHTML = "❌";
+      deleteBtn.classList.add("subtask-delete-btn");
+      deleteBtn.addEventListener("click", () => {
+        subtaskItem.classList.add("deleting");
+        setTimeout(() => {
+          subtaskItem.remove();
+          updateSubtaskCounter(container, container.previousElementSibling);
+          saveData();
+        }, 400);
+      });      
+      checkbox.addEventListener("change", () => {
+        updateSubtaskCounter(container, container.previousElementSibling);
+        saveData();
+      });      
+      input.addEventListener("input", () => {
+        saveData();
+      });      
+      subtaskItem.appendChild(checkbox);
+      subtaskItem.appendChild(input);
+      subtaskItem.appendChild(deleteBtn);
+      container.appendChild(subtaskItem);     
+      updateSubtaskCounter(container, container.previousElementSibling);
+    }
+    function getTaskDateTime(li) {
+      const small = li.querySelector("small");
+      if (!small) return null;      
+      const dueText = small.textContent;
+      const dateMatch = dueText.match(/\d{4}-\d{2}-\d{2}/);
+      const timeMatch = dueText.match(/\d{2}:\d{2}/);      
+      if (!dateMatch) return null;      
+      const date = dateMatch[0];
+      const time = timeMatch ? timeMatch[0] : "00:00";
+      return new Date(`${date}T${time}`);
+    }
+    
+    function selectAllTasks() {
+      const checkboxes = document.querySelectorAll(".bulk-select");
+      const allSelected = Array.from(checkboxes).every(cb => cb.checked);
+    
+      checkboxes.forEach(cb => {
+        cb.checked = !allSelected;
+        cb.dispatchEvent(new Event("change")); // ✅ Triggers visual update
+      });
+    }
+    
+    function completeSelectedTasks() {
+      const search = document.getElementById("searchInput");
+      search.value = "";
+      search.dispatchEvent(new Event("input"));
+    
+      document.querySelectorAll(".bulk-select:checked").forEach(cb => {
+        const li = cb.closest("li");
+        if (!li || li.classList.contains("completed")) return;
+    
+        li.classList.add("completed", "marked");
+    
+        const toggle = li.querySelector(".complete-toggle");
+        if (toggle) toggle.textContent = "✔";
+    
+        const taskText = li.querySelector("strong")?.textContent.trim() || "";
+        const dueDate = li.querySelector("small")?.textContent.match(/\d{4}-\d{2}-\d{2}/)?.[0] || "";
+        const time = li.querySelector("small")?.textContent.match(/\d{2}:\d{2}/)?.[0] || "";
+        const category = li.querySelector(".tag")?.textContent || "Other";
+        const priority = li.querySelector(".priority")?.textContent || "Low";
+        const repeat = li.getAttribute("data-repeat") || "None";
+    
+        if (repeat !== "None" && dueDate) {
+          const nextDate = getNextDueDate(dueDate, repeat);
+          const subtaskEls = li.querySelectorAll(".subtask-list .subtask-item");
+          const subtasks = Array.from(subtaskEls).map(item => {
+            const input = item.querySelector("input[type='text']");
+            return { text: input.value.trim(), done: false };
+          }).filter(sub => sub.text !== "");
+    
+          createTaskElement(taskText, nextDate, category, priority, time, false, repeat, subtasks);
+        }
+    
+        li.style.display = "flex"; // ✅ Keep visible
+        setTimeout(() => li.classList.remove("marked"), 500);
+      });
+    
+      saveData();
+      updateCounters();
+    }
+    
+    function uncompleteSelectedTasks() {
+      document.getElementById("searchInput").value = "";
+      document.getElementById("searchInput").dispatchEvent(new Event("input"));
+    
+      document.querySelectorAll(".bulk-select:checked").forEach(cb => {
+        const li = cb.closest("li");
+        if (li && li.classList.contains("completed")) {
+          li.classList.remove("completed");
+          li.classList.add("unmarked");
+          const toggle = li.querySelector(".complete-toggle");
+          if (toggle) toggle.textContent = "";
+    
+          setTimeout(() => li.classList.remove("unmarked"), 500);
+        }
+      });
+    
+      saveData();
+      updateCounters();
+    }
+    function deleteSelectedTasks() {
+      const selectedTasks = document.querySelectorAll(".bulk-select:checked");
+      
+      if (selectedTasks.length === 0) {
+        alert("⚠️ No tasks selected for deletion!");
+        return;
+      }
+    
+      if (!confirm("🗑️ Are you sure you want to delete the selected tasks?")) return;
+    
+      selectedTasks.forEach(cb => {
+        const li = cb.closest("li");
+        if (li) {
+          li.classList.add("deleting");
+          setTimeout(() => {
+            li.remove();
+            saveData();
+            updateCounters();
+          }, 400);
+        }
+      });
+    }
+    function exportTasks() {
+      const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+      const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "todo_tasks.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    
+    // ✅ FIXED: now it's outside
+    function exportTasksAsPDF() {
+      const container = document.createElement("div");
+      container.innerHTML = "<h2>To-Do List</h2>";
+    
+      document.querySelectorAll("#taskList li").forEach((li, index) => {
+        const title = li.querySelector("strong")?.textContent || "Untitled Task";
+        const due = li.querySelector("small")?.textContent || "";
+        const category = li.querySelector(".tag")?.textContent || "";
+        const priority = li.querySelector(".priority")?.textContent || "";
+        const completed = li.classList.contains("completed") ? "✔ Completed" : "⏳ Pending";
+        container.innerHTML += `
+          <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+            <strong>${index + 1}. ${title}</strong><br>
+            <em>${due}</em><br>
+            <span>📁 ${category} | 🔽 Priority: ${priority} | Status: ${completed}</span><br>
+        `;
+        const subtasks = li.querySelectorAll(".subtask-item input[type='text']");
+        if (subtasks.length > 0) {
+          container.innerHTML += `<ul>`;
+          subtasks.forEach(sub => {
+            container.innerHTML += `<li style="margin-left: 20px;">🔹 ${sub.value}</li>`;
+          });
+          container.innerHTML += `</ul>`;
+        }
+        container.innerHTML += `</div>`;
+      });
+      const opt = {
+        margin: 0.5,
+        filename: 'todo_tasks.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+    
+      html2pdf().set(opt).from(container).save();
+    }
+    
+    
+    function importTasks(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedTasks = JSON.parse(e.target.result);
+          if (!Array.isArray(importedTasks)) {
+            alert("Invalid file format. Please upload a valid JSON.");
+            return;
+          }
+          // Optional: merge or replace
+          const existingTasks = JSON.parse(localStorage.getItem("tasks")) || [];
+          const combinedTasks = existingTasks.concat(importedTasks);
+          localStorage.setItem("tasks", JSON.stringify(combinedTasks));
+          taskList.innerHTML = "";
+          loadData();
+          alert("✅ Tasks imported successfully!");
+        } catch (err) {
+          alert("⚠️ Failed to import tasks: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+    
+    function bounceStat(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.add("animated");
+        setTimeout(() => el.classList.remove("animated"), 400);
+      }
+    }
+    function updateCounters() {
+      const total = document.querySelectorAll("#taskList li").length;
+      const completed = document.querySelectorAll("#taskList li.completed").length;
+      const pending = total - completed;
+    
+      document.getElementById("totalCount").textContent = total;
+      document.getElementById("completedCount").textContent = completed;
+      document.getElementById("pendingCount").textContent = pending;
+    
+      bounceStat("totalCount");
+      bounceStat("completedCount");
+      bounceStat("pendingCount");
+
+      updateProgressTracking(); // ← add this line
+    }
+    
+    function updateProgressTracking() {
+  const total = document.querySelectorAll("#taskList li").length;
+  const completed = document.querySelectorAll("#taskList li.completed").length;
+
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  document.getElementById("progressFill").style.width = `${percent}%`;
+  document.getElementById("progressPercent").textContent = `${percent}%`;
+}
+
+
+    function updateSubtaskCounter(subtaskList, counterElement) {
+      const subtasks = subtaskList.querySelectorAll(".subtask-item input[type='checkbox']");
+      const total = subtasks.length;
+      counterElement.classList.add("animated");
+      setTimeout(() => counterElement.classList.remove("animated"), 400);
+      const completed = Array.from(subtasks).filter(cb => cb.checked).length;
+      if (total > 0) {
+        counterElement.textContent = `📝 Subtasks: ✔ ${completed} / ${total}`;
+      } else {
+        counterElement.textContent = "";
+      }
+    }
+    
+    function showSubtaskToast() {
+      const toast = document.getElementById("subtaskToast");
+      toast.style.display = "block";
+      clearTimeout(subtaskUndoTimeout);
+      subtaskUndoTimeout = setTimeout(() => {
+        toast.style.display = "none";
+        lastDeletedSubtask = null;
+      }, 5000);
+    }
+    
+    document.getElementById("subtaskUndoBtn").addEventListener("click", () => {
+      if (lastDeletedSubtask) {
+        addSubtask(
+          lastDeletedSubtask.container,
+          lastDeletedSubtask.text,
+          lastDeletedSubtask.done
+        );
+        saveData();
+      }
+      document.getElementById("subtaskToast").style.display = "none";
+      lastDeletedSubtask = null;
+      clearTimeout(subtaskUndoTimeout);
+    });
+    function toggleFeatureDialog() {
+      const dialog = document.getElementById("featureDialog");
+      dialog.classList.toggle("show");
+    }
+    function animateFeatureList() {
+      const items = document.querySelectorAll('.feature-content li');
+      items.forEach((li, index) => {
+        li.style.setProperty('--delay', `${index * 0.1}s`);
+      });
+    }
+    function toggleFeatureDialog() {
+      const dialog = document.getElementById("featureDialog");
+      dialog.classList.toggle("show");
+      if (dialog.classList.contains("show")) {
+        animateFeatureList();
+      }
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+</body>
+</hml>
