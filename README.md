@@ -2,89 +2,71 @@
   This is a feature-rich To-Do List web application built using HTML, CSS, and JavaScript. It helps users manage tasks with reminders, categories, subtasks, and more, all in an elegant and animated interface.
 
 ✨ Key Features & How to Use Them
-1. ✅ Add Tasks
-Enter the task title in the input field.
 
+1. ✅ Add Tasks
+
+Enter the task title in the input field.
 Optionally add:
 
 📅 Due date
-
 ⏰ Time
-
 🔁 Repeating frequency (Daily/Weekly/Monthly)
-
 🚦 Priority (Low, Medium, High)
-
 🏷️ Category (Work, Personal, Study, etc.)
-
 Click ➕ to create the task.
-
 Newly added tasks appear with smooth animation.
 
 2. 📌 Edit Task Titles
-Click directly on the task name.
 
+Click directly on the task name.
 Make changes and press Enter or click outside to save.
 
 3. 📑 Add Subtasks
+
 Click ➕ Add Subtask under a task.
-
 Enter subtask names and check/uncheck them as needed.
-
 Each subtask has a delete ❌ button.
 
-4. 🔁 Recurring Tasks
-While adding a task, choose a repeat option.
+5. 🔁 Recurring Tasks
 
+While adding a task, choose a repeat option.
 When marked as complete, a new copy is created automatically with the next due date.
 
 5. ⏰ Smart Reminders
-Tasks with a due time will show a live ⏳ countdown.
 
+Tasks with a due time will show a live ⏳ countdown.
 If a task is due in less than 1 minute, a 🔔 pop-up alert will appear.
 
 6. 📊 Task Counters & Progress
+
 View counters for:
-
 📋 Total tasks
-
 ✅ Completed
-
 ⏳ Pending
-
 A dynamic progress bar shows task completion percentage.
 
 7. 🔍 Real-Time Search
+
 Use the search box to filter tasks by:
-
 Title
-
 Due date
-
 Subtasks
-
 Category
 
 8. ☰ Drag-and-Drop Sorting
+
 Rearrange tasks by dragging the ☰ handle on the left.
 
-9. 📥 Bulk Actions Toolbar
+10. 📥 Bulk Actions Toolbar
+
 Use floating buttons to:
-
 ✅ Select all tasks
-
 ✔️ Mark selected tasks as completed
-
 ↩️ Unmark selected (set to pending)
-
 🗑️ Delete selected tasks
-
 📤 Export tasks as PDF
-
 📥 Import tasks from a JSON file
-
 📅 Sort tasks by due date (ascending/descending)
-
 🌙 Toggle light/dark mode
 
 10. 🗂️ Import/Export
