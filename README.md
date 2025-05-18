@@ -1,4 +1,4 @@
-Here's a list of popular mini-project ideas, grouped by theme, that are similar to or expand upon the idea of a To-Do List:
+    Here's a list of popular mini-project ideas, grouped by theme, that are similar to or expand upon the idea of a To-Do List:
 
 ✅ Mini Project Ideas Similar to To-Do List
 📋 Productivity & Organization
