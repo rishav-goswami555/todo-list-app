@@ -1,5 +1,5 @@
-📝 To-Do List App – Mini Project
-This is a feature-rich To-Do List web application built using HTML, CSS, and JavaScript. It helps users manage tasks with reminders, categories, subtasks, and more, all in an elegant and animated interface.
+  📝 To-Do List App – Mini Project
+  This is a feature-rich To-Do List web application built using HTML, CSS, and JavaScript. It helps users manage tasks with reminders, categories, subtasks, and more, all in an elegant and animated interface.
 
 ✨ Key Features & How to Use Them
 1. ✅ Add Tasks
